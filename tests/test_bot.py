@@ -1,4 +1,5 @@
 import os
+
 from http import HTTPStatus
 
 import requests
@@ -159,7 +160,11 @@ class TestHomework:
 
     def test_logger(self, monkeypatch, random_timestamp):
         def mock_telegram_bot(*args, **kwargs):
-            return MockTelegramBot(*args, random_timestamp=random_timestamp, **kwargs)
+            return MockTelegramBot(
+                *args,
+                random_timestamp=random_timestamp,
+                **kwargs
+            )
 
         monkeypatch.setattr(telegram, "Bot", mock_telegram_bot)
 
@@ -171,7 +176,11 @@ class TestHomework:
 
     def test_send_message(self, monkeypatch, random_timestamp):
         def mock_telegram_bot(*args, **kwargs):
-            return MockTelegramBot(*args, random_timestamp=random_timestamp, **kwargs)
+            return MockTelegramBot(
+                *args,
+                random_timestamp=random_timestamp,
+                **kwargs
+            )
 
         monkeypatch.setattr(telegram, "Bot", mock_telegram_bot)
 
@@ -243,7 +252,8 @@ class TestHomework:
             pass
         else:
             assert False, (
-                f'Убедитесь, что в функции `{func_name}` обрабатываете ситуацию, '
+                f'Убедитесь, что в функции `{func_name}` '
+                'обрабатываете ситуацию, '
                 'когда API возвращает код, отличный от 200'
             )
 
@@ -368,13 +378,15 @@ class TestHomework:
             else:
                 assert False, (
                     f'Убедитесь, что функция `{func_name}` выбрасывает ошибку '
-                    'при недокументированном статусе домашней работы в ответе от API'
+                    'при недокументированном статусе домашней работы '
+                    'в ответе от API'
                 )
             if status_message is not None:
                 for hw_status in self.HOMEWORK_STATUSES:
                     assert not status_message.endswith(hw_status), (
-                        f'Убедитесь, что функция `{func_name} не возвращает корректный '
-                        'ответ при получении домашки с недокументированным статусом'
+                        f'Убедитесь, что функция `{func_name} '
+                        'не возвращает корректный ответ при получении '
+                        'домашки с недокументированным статусом'
                     )
 
     def test_parse_status_no_status_key(self, monkeypatch, random_timestamp,
@@ -416,17 +428,20 @@ class TestHomework:
             else:
                 assert False, (
                     f'Убедитесь, что функция `{func_name}` выбрасывает ошибку '
-                    'при отсутствии ключа `homework_status` домашней работы в ответе от API'
+                    'при отсутствии ключа `homework_status` '
+                    'домашней работы в ответе от API'
                 )
             if status_message is not None:
                 for hw_status in self.HOMEWORK_STATUSES:
                     assert not status_message.endswith(hw_status), (
-                        f'Убедитесь, что функция `{func_name} не возвращает корректный '
-                        'ответ при получении домашки без ключа `homework_status`'
+                        f'Убедитесь, что функция `{func_name} не возвращает '
+                        'корректный ответ при получении домашки '
+                        'без ключа `homework_status`'
                     )
 
-    def test_parse_status_no_homework_name_key(self, monkeypatch, random_timestamp,
-                                               current_timestamp, api_url):
+    def test_parse_status_no_homework_name_key(
+        self, monkeypatch, random_timestamp, current_timestamp, api_url
+    ):
         def mock_response_get(*args, **kwargs):
             response = MockResponseGET(
                 *args, random_timestamp=random_timestamp,
@@ -542,8 +557,9 @@ class TestHomework:
                 'ответ от API имеет некорректный тип.'
             )
 
-    def test_check_response_homeworks_not_in_list(self, monkeypatch, random_timestamp,
-                                                  current_timestamp, api_url):
+    def test_check_response_homeworks_not_in_list(
+        self, monkeypatch, random_timestamp, current_timestamp, api_url
+    ):
         def mock_response_get(*args, **kwargs):
             response = MockResponseGET(
                 *args, random_timestamp=random_timestamp,
@@ -637,6 +653,7 @@ class TestHomework:
             pass
         else:
             assert False, (
-                f'Убедитесь, что в функции `{func_name}` обрабатываете ситуацию, '
+                f'Убедитесь, что в функции `{func_name}` '
+                'обрабатываете ситуацию, '
                 'когда API возвращает код, отличный от 200'
             )
