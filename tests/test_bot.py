@@ -154,7 +154,10 @@ class TestHomework:
     def test_bot_init_not_global(self):
         import homework
 
-        assert not (hasattr(homework, 'bot') and isinstance(getattr(homework, 'bot'), telegram.Bot)), (
+        assert not (
+            hasattr(homework, 'bot')
+            and isinstance(getattr(homework, 'bot'), telegram.Bot)
+        ), (
             'Убедитесь, что бот инициализирован только в main()'
         )
 
