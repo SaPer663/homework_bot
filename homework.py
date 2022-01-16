@@ -41,10 +41,11 @@ def get_api_answer(current_timestamp: int) -> Optional[dict]:
     params = {'from_date': timestamp}
     try:
         hw_status = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        if hw_status.status_code == 200:
-            return hw_status.json()
     except Exception as e:
         pass
+    else:
+        if hw_status.status_code == 200:
+            return hw_status.json()
 
 
 def check_response(response: dict) -> list:
@@ -58,6 +59,11 @@ def parse_status(homework: dict) -> str:
     """Извлекает из информации(homework: dict) статус работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
+    if homework_status not in HOMEWORK_STATUSES:
+        raise KeyError(
+            f'{homework_status} - недокументированный или отсутствует '
+            'статус домашней работы '
+        )
     verdict = HOMEWORK_STATUSES.get(homework_status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
