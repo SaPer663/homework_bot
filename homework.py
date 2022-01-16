@@ -47,7 +47,7 @@ def send_message(bot: telegram.Bot, message: str) -> None:
     except Exception as e:
         logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
     else:
-        logger.info(f'Сообщение отправлено в чат {TELEGRAM_CHAT_ID}')
+        logger.info('Сообщение отправлено в чат')
 
 
 def get_api_answer(current_timestamp: int) -> dict:
