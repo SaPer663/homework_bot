@@ -9,7 +9,7 @@ import telegram
 
 from dotenv import load_dotenv
 
-from exceptions import MissingEnvironmentVariable
+from exceptions import MissingEnvironmentVariable, ResponseStatusIsNotOK
 
 load_dotenv()
 
@@ -44,8 +44,9 @@ def get_api_answer(current_timestamp: int) -> Optional[dict]:
     except Exception as e:
         pass
     else:
-        if hw_status.status_code == 200:
-            return hw_status.json()
+        if hw_status.status_code != 200:
+            raise ResponseStatusIsNotOK
+        return hw_status.json()
 
 
 def check_response(response: dict) -> list:
