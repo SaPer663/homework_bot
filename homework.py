@@ -68,14 +68,6 @@ def check_response(response: dict) -> list:
     current_date = response['current_date']
     if type(homeworks) != list or type(current_date) != int:
         raise TypeError('Недокументированный ответ от API')
-    if homeworks:
-        if type(homeworks[0]) != dict:
-            raise TypeError('Недокументированный ответ от API')
-        for item in ('id', 'status',
-                     'homework_name', 'reviewer_comment',
-                     'date_updated', 'lesson_name'):
-            if item not in homeworks[0]:
-                raise TypeError('Недокументированный ответ от API')
     return homeworks
 
 
