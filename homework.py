@@ -31,7 +31,7 @@ HOMEWORK_STATUSES = {
 }
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 handler = StreamHandler(sys.stdout)
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -42,8 +42,12 @@ logger.addHandler(handler)
 
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправляет сообщение в телеграм чат."""
-    logger.info(f'Сообщение отправлено в чат {TELEGRAM_CHAT_ID}')
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    except Exception as e:
+        logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
+    else:
+        logger.info(f'Сообщение отправлено в чат {TELEGRAM_CHAT_ID}')
 
 
 def get_api_answer(current_timestamp: int) -> dict:
@@ -107,13 +111,15 @@ def check_tokens() -> bool:
 
 def main() -> None:
     """Основная логика работы бота."""
-    logger.info('Программа работает')
     if not check_tokens():
         return
+
+    logger.info('Программа работает')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     homeworks = []
+    message_cache = []
     while True:
         try:
             response = get_api_answer(current_timestamp)
@@ -122,16 +128,20 @@ def main() -> None:
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
+            if message not in message_cache:
+                send_message(bot=bot, message=message)
+                message_cache.append(message)
             time.sleep(RETRY_TIME)
         else:
             if current_homeworks != homeworks:
-                bot.send_message(
-                    chat_id=TELEGRAM_CHAT_ID,
-                    text=parse_status(current_homeworks[0])
-                )
+                message = parse_status(current_homeworks[0])
+                send_message(bot=bot, message=message)
                 homeworks = current_homeworks
-            current_timestamp += RETRY_TIME
+            else:
+                logger.debug('Статус не обновился')
+            current_timestamp = response['current_date']
             time.sleep(RETRY_TIME)
+            message_cache.clear()
 
 
 if __name__ == '__main__':
