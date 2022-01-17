@@ -10,7 +10,7 @@ import telegram
 
 from dotenv import load_dotenv
 
-from exceptions import ResponseStatusIsNotOK
+from exceptions import MissingEnvironmentVariable, ResponseStatusIsNotOK
 
 load_dotenv()
 
@@ -63,7 +63,11 @@ def get_api_answer(current_timestamp: int) -> dict:
             raise ResponseStatusIsNotOK(
                 f'Статус код ответа от API {hw_status.status_code}'
             )
-        return hw_status.json()
+        try:
+            return hw_status.json()
+        except Exception as e:
+            logger.error(f'Неудалось декодировать в json ответ от API {e}')
+            return {}
 
 
 def check_response(response: dict) -> list:
@@ -112,7 +116,7 @@ def check_tokens() -> bool:
 def main() -> None:
     """Основная логика работы бота."""
     if not check_tokens():
-        return
+        raise MissingEnvironmentVariable
 
     logger.info('Программа работает')
 
