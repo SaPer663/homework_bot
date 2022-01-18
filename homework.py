@@ -10,25 +10,16 @@ import telegram
 
 from dotenv import load_dotenv
 
+import constants
+
 from exceptions import MissingEnvironmentVariable, ResponseStatusIsNotOK
 
 load_dotenv()
-
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-
-HOMEWORK_STATUSES = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -43,7 +34,7 @@ logger.addHandler(handler)
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправляет сообщение в телеграм чат."""
     try:
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        bot.send_message(chat_id=constants.TELEGRAM_CHAT_ID, text=message)
     except Exception as e:
         logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
     else:
@@ -55,7 +46,11 @@ def get_api_answer(current_timestamp: int) -> dict:
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
-        hw_status = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        hw_status = requests.get(
+            constants.ENDPOINT,
+            headers=constants.HEADERS,
+            params=params
+        )
     except Exception as e:
         logger.error(f'Неудалось получить ответ от API {e}')
     else:
@@ -72,8 +67,12 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 def check_response(response: dict) -> list:
     """Проверяет ответ API на корректность."""
-    homeworks = response['homeworks']
-    current_date = response['current_date']
+    if not response or type(response) != dict:
+        raise TypeError('Недокументированный ответ от API')
+    homeworks = response.get('homeworks')
+    current_date = response.get('current_date')
+    if not homeworks or not current_date:
+        raise TypeError('Недокументированный ответ от API')
     if type(homeworks) != list or type(current_date) != int:
         raise TypeError('Недокументированный ответ от API')
     return homeworks
@@ -81,14 +80,14 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework: dict) -> str:
     """Извлекает из информации(homework: dict) статус работы."""
-    homework_name = homework['homework_name']
-    homework_status = homework['status']
-    if homework_status not in HOMEWORK_STATUSES:
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    if homework_status not in constants.HOMEWORK_STATUSES:
         raise KeyError(
             f'{homework_status} - недокументированный или отсутствует '
             'статус домашней работы '
         )
-    verdict = HOMEWORK_STATUSES.get(homework_status)
+    verdict = constants.HOMEWORK_STATUSES.get(homework_status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -120,7 +119,7 @@ def main() -> None:
 
     logger.info('Программа работает')
 
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    bot = telegram.Bot(token=constants.TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     homeworks = []
     message_cache = []
@@ -135,7 +134,7 @@ def main() -> None:
             if message not in message_cache:
                 send_message(bot=bot, message=message)
                 message_cache.append(message)
-            time.sleep(RETRY_TIME)
+            time.sleep(constants.RETRY_TIME)
         else:
             if current_homeworks != homeworks:
                 message = parse_status(current_homeworks[0])
@@ -144,7 +143,7 @@ def main() -> None:
             else:
                 logger.debug('Статус не обновился')
             current_timestamp = response['current_date']
-            time.sleep(RETRY_TIME)
+            time.sleep(constants.RETRY_TIME)
             message_cache.clear()
 
 
