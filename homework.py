@@ -34,7 +34,7 @@ logger.addHandler(handler)
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправляет сообщение в телеграм чат."""
     try:
-        bot.send_message(chat_id=constants.TELEGRAM_CHAT_ID, text=message)
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except Exception as e:
         logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
     else:
@@ -71,7 +71,7 @@ def check_response(response: dict) -> list:
         raise TypeError('Недокументированный ответ от API')
     homeworks = response.get('homeworks')
     current_date = response.get('current_date')
-    if not homeworks or not current_date:
+    if homeworks is None or current_date is None:
         raise TypeError('Недокументированный ответ от API')
     if type(homeworks) != list or type(current_date) != int:
         raise TypeError('Недокументированный ответ от API')
@@ -119,7 +119,7 @@ def main() -> None:
 
     logger.info('Программа работает')
 
-    bot = telegram.Bot(token=constants.TELEGRAM_TOKEN)
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     homeworks = []
     message_cache = []
@@ -127,6 +127,9 @@ def main() -> None:
         try:
             response = get_api_answer(current_timestamp)
             current_homeworks = check_response(response=response)
+            is_update = current_homeworks != homeworks
+            if is_update:
+                homework_status = parse_status(current_homeworks[0])
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
@@ -136,9 +139,8 @@ def main() -> None:
                 message_cache.append(message)
             time.sleep(constants.RETRY_TIME)
         else:
-            if current_homeworks != homeworks:
-                message = parse_status(current_homeworks[0])
-                send_message(bot=bot, message=message)
+            if is_update:
+                send_message(bot=bot, message=homework_status)
                 homeworks = current_homeworks
             else:
                 logger.debug('Статус не обновился')
