@@ -122,7 +122,7 @@ def main() -> None:
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     homeworks = []
-    message_cache = []
+    submitted_error = ''
     while True:
         try:
             response = get_api_answer(current_timestamp)
@@ -134,9 +134,9 @@ def main() -> None:
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            if message not in message_cache:
+            if message != submitted_error:
                 send_message(bot=bot, message=message)
-                message_cache.append(message)
+                submitted_error = message
             time.sleep(constants.RETRY_TIME)
         else:
             if is_update:
@@ -146,7 +146,7 @@ def main() -> None:
                 logger.debug('Статус не обновился')
             current_timestamp = response['current_date']
             time.sleep(constants.RETRY_TIME)
-            message_cache.clear()
+            submitted_error = '' 
 
 
 if __name__ == '__main__':
