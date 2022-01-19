@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import sys
@@ -5,6 +6,7 @@ import time
 
 from logging import StreamHandler
 
+import pytz
 import requests
 import telegram
 
@@ -25,7 +27,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = StreamHandler(sys.stdout)
 formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logging.Formatter.converter = (
+    lambda *args: datetime.datetime.now(
+        tz=pytz.timezone(constants.TIMEZONE)
+    ).timetuple()
 )
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -146,7 +153,7 @@ def main() -> None:
                 logger.debug('Статус не обновился')
             current_timestamp = response['current_date']
             time.sleep(constants.RETRY_TIME)
-            submitted_error = '' 
+            submitted_error = ''
 
 
 if __name__ == '__main__':
