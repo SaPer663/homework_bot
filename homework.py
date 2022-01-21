@@ -5,6 +5,7 @@ import sys
 import time
 
 from logging import StreamHandler
+from typing import List
 
 import pytz
 import requests
@@ -108,27 +109,26 @@ def check_tokens() -> bool:
         'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
         'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
     }
-    missing = []
-    for key, value in variables.items():
-        if not value:
-            missing.append(key)
-    if missing:
-        logger.critical(
-            'Отсутствуют обязательные переменные окружения: '
-            f'{missing}. Программа принудительно остановлена.')
+    for value in variables.values():
+        if value is None:
+            logger.critical(
+                f'Отсутствует обязательная переменная окружения: {value}')
     return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
 
 
 def main() -> None:
     """Основная логика работы бота."""
     if not check_tokens():
+        logger.critical(
+            'Отсутствуют обязательные переменные окружения. '
+            'Программа принудительно остановлена.')
         raise MissingEnvironmentVariable
 
     logger.info('Программа работает')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    homeworks = []
+    homeworks: List[dict] = []
     submitted_error = ''
     while True:
         try:

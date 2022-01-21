@@ -30,10 +30,10 @@ def check_default_var_exists(scope: ModuleType, var_name: str) -> None:
     :return: None. It's an assert
     """
     assert hasattr(scope, var_name), (
-        f'Не найдена переменная `{var_name}`. Не удаляйте и не переименовывайте ее.'
+        f'Не найдена переменная `{var_name}`.'
+        ' Не удаляйте и не переименовывайте ее.'
     )
     var = getattr(scope, var_name)
     assert not callable(var), (
         f'{var_name} должна быть переменной, а не функцией.'
     )
-
