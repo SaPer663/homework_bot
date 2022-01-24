@@ -113,7 +113,7 @@ def check_tokens() -> bool:
         if value is None:
             logger.critical(
                 f'Отсутствует обязательная переменная окружения: {value}')
-    return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
+    return all(variables.values())
 
 
 def main() -> None:
