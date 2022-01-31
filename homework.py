@@ -133,6 +133,7 @@ def main() -> None:
         try:
             response = get_api_answer(current_timestamp)
             current_homeworks = check_response(response=response)
+            print(current_homeworks)
     
             if current_homeworks:
                 homework_status = parse_status(current_homeworks[0])
@@ -145,7 +146,7 @@ def main() -> None:
                 submitted_error = message
             time.sleep(constants.RETRY_TIME)
         else:
-            if current_homeworks::
+            if current_homeworks:
                 send_message(bot=bot, message=homework_status)
             else:
                 logger.debug('Статус не обновился')
