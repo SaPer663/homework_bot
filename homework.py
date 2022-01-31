@@ -128,14 +128,13 @@ def main() -> None:
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    homeworks: List[dict] = []
     submitted_error = ''
     while True:
         try:
             response = get_api_answer(current_timestamp)
             current_homeworks = check_response(response=response)
-            is_update = current_homeworks != homeworks
-            if is_update:
+    
+            if current_homeworks:
                 homework_status = parse_status(current_homeworks[0])
 
         except Exception as error:
@@ -146,9 +145,8 @@ def main() -> None:
                 submitted_error = message
             time.sleep(constants.RETRY_TIME)
         else:
-            if is_update:
+            if current_homeworks::
                 send_message(bot=bot, message=homework_status)
-                homeworks = current_homeworks
             else:
                 logger.debug('Статус не обновился')
             current_timestamp = response['current_date']
