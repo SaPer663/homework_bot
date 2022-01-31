@@ -133,7 +133,6 @@ def main() -> None:
         try:
             response = get_api_answer(current_timestamp)
             current_homeworks = check_response(response=response)
-            print(current_homeworks)
     
             if current_homeworks:
                 homework_status = parse_status(current_homeworks[0])
