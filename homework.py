@@ -5,7 +5,7 @@ import sys
 import time
 
 from logging import StreamHandler
-from typing import List
+from typing import Dict, Optional, Union
 
 import pytz
 import requests
@@ -49,9 +49,9 @@ def send_message(bot: telegram.Bot, message: str) -> None:
         logger.info('Сообщение отправлено в чат')
 
 
-def get_api_answer(current_timestamp: int) -> dict:
+def get_api_answer(current_timestamp: int) -> Dict[str, Union(list, int)]:
     """Делает запрос к API сервиса Практикум.Домашка."""
-    timestamp = current_timestamp or int(time.time())
+    timestamp: int = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
         hw_status = requests.get(
@@ -61,6 +61,7 @@ def get_api_answer(current_timestamp: int) -> dict:
         )
     except Exception as e:
         logger.error(f'Неудалось получить ответ от API {e}')
+        return {}
     else:
         if hw_status.status_code != 200:
             raise ResponseStatusIsNotOK(
@@ -77,8 +78,8 @@ def check_response(response: dict) -> list:
     """Проверяет ответ API на корректность."""
     if not response or type(response) != dict:
         raise TypeError('Недокументированный ответ от API')
-    homeworks = response.get('homeworks')
-    current_date = response.get('current_date')
+    homeworks: Optional(list) = response.get('homeworks')
+    current_date: Optional(int) = response.get('current_date')
     if homeworks is None or current_date is None:
         raise TypeError('Недокументированный ответ от API')
     if type(homeworks) != list or type(current_date) != int:
@@ -88,14 +89,14 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework: dict) -> str:
     """Извлекает из информации(homework: dict) статус работы."""
-    homework_name = homework.get('homework_name')
-    homework_status = homework.get('status')
+    homework_name: Optional(str) = homework.get('homework_name')
+    homework_status: Optional(str) = homework.get('status')
     if homework_status not in constants.HOMEWORK_STATUSES:
         raise KeyError(
             f'{homework_status} - недокументированный или отсутствует '
             'статус домашней работы '
         )
-    verdict = constants.HOMEWORK_STATUSES.get(homework_status)
+    verdict: Optional(str) = constants.HOMEWORK_STATUSES.get(homework_status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -104,7 +105,7 @@ def check_tokens() -> bool:
     Если отсутствует хотя бы одна переменная окружения — функция должна
     вернуть False, иначе — True.
     """
-    variables = {
+    variables: Dict[str, Union(str, int)] = {
         'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
         'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
         'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
@@ -127,18 +128,19 @@ def main() -> None:
     logger.info('Программа работает')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
-    submitted_error = ''
+    current_timestamp: int = int(time.time())
+    submitted_error: str = ''
     while True:
         try:
-            response = get_api_answer(current_timestamp)
-            current_homeworks = check_response(response=response)
-    
+            type_response = Dict[str, Union(list, int)]
+            response: type_response = get_api_answer(current_timestamp)
+            current_homeworks: list = check_response(response=response)
+
             if current_homeworks:
-                homework_status = parse_status(current_homeworks[0])
+                homework_status: str = parse_status(current_homeworks[0])
 
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
+            message: str = f'Сбой в работе программы: {error}'
             logger.error(message)
             if message != submitted_error:
                 send_message(bot=bot, message=message)
