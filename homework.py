@@ -1,52 +1,50 @@
 import datetime
 import logging
-import os
 import sys
 import time
 
 from logging import StreamHandler
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import pytz
 import requests
 import telegram
 
-from dotenv import load_dotenv
+from requests import exceptions
 
 import constants
 
 from exceptions import MissingEnvironmentVariable, ResponseStatusIsNotOK
 
-load_dotenv()
 
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+def get_logger():
+    """Возвращает настроенный логгер."""
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    handler = StreamHandler(sys.stdout)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    )
+    logging.Formatter.converter = (
+        lambda *args: datetime.datetime.now(
+            tz=pytz.timezone(constants.TIMEZONE)
+        ).timetuple()
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = StreamHandler(sys.stdout)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logging.Formatter.converter = (
-    lambda *args: datetime.datetime.now(
-        tz=pytz.timezone(constants.TIMEZONE)
-    ).timetuple()
-)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = get_logger()
 
 
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправляет сообщение в телеграм чат."""
     try:
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        bot.send_message(chat_id=constants.TELEGRAM_CHAT_ID, text=message)
+        logger.info('Сообщение отправлено в чат')
     except Exception as e:
         logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
-    else:
-        logger.info('Сообщение отправлено в чат')
 
 
 def get_api_answer(current_timestamp: int) -> Dict[str, Union(list, int)]:
@@ -59,35 +57,56 @@ def get_api_answer(current_timestamp: int) -> Dict[str, Union(list, int)]:
             headers=constants.HEADERS,
             params=params
         )
-    except Exception as e:
-        logger.error(f'Неудалось получить ответ от API {e}')
-        return {}
-    else:
         if hw_status.status_code != 200:
             raise ResponseStatusIsNotOK(
                 f'Статус код ответа от API {hw_status.status_code}'
             )
-        try:
-            return hw_status.json()
-        except Exception as e:
-            logger.error(f'Неудалось декодировать в json ответ от API {e}')
-            return {}
+        return hw_status.json()
+    except ResponseStatusIsNotOK:
+        logger.error(f'Статус код ответа от API {hw_status.status_code}')
+        raise ResponseStatusIsNotOK(
+            f'Статус код ответа от API {hw_status.status_code}'
+        )
+    except exceptions.JSONDecodeError:
+        logger.error('Не удалось декодировать в json.')
+        raise exceptions.JSONDecodeError('Не удалось декодировать в json.')
+    except requests.exceptions.HTTPError as HTTPError:
+        status_code = hw_status.status_code
+        logger.error(f'Эндпоинт недоступен, ошибка: {HTTPError} {status_code}')
+        raise HTTPError(
+            f'Эндпоинт недоступен, ошибка: {HTTPError} {status_code}'
+        )
+    except exceptions.ConnectionError as ConnectionError:
+        logger.error(f'Эндпоинт недоступен, ошибка: {ConnectionError}')
+        raise ConnectionError(
+            f'Эндпоинт недоступен, ошибка: {ConnectionError}'
+        )
+    except exceptions.RequestException as RequestException:
+        logger.error(f'Эндпоинт недоступен, ошибка: {RequestException}')
+        raise RequestException(
+            f'Эндпоинт недоступен, ошибка: {RequestException}'
+        )
 
 
-def check_response(response: dict) -> list:
+def check_response(
+    response: Dict[str, Union(list, int)]
+) -> List[Dict[str, Union(list, int)]]:
     """Проверяет ответ API на корректность."""
-    if not response or type(response) != dict:
-        raise TypeError('Недокументированный ответ от API')
+    if not response or isinstance(response, dict):
+        raise TypeError('В ответе API ничего нет или это не словарь')
     homeworks: Optional(list) = response.get('homeworks')
     current_date: Optional(int) = response.get('current_date')
     if homeworks is None or current_date is None:
-        raise TypeError('Недокументированный ответ от API')
-    if type(homeworks) != list or type(current_date) != int:
-        raise TypeError('Недокументированный ответ от API')
+        raise TypeError('В ответе API нет ключей `homeworks` и `current_date`')
+    if isinstance(homeworks, list) or isinstance(current_date, int):
+        raise TypeError(
+            'В ответе API не ожидаемые типы значений '
+            'ключей `homeworks` и `current_date`'
+        )
     return homeworks
 
 
-def parse_status(homework: dict) -> str:
+def parse_status(homework: Dict[str, Union(list, int)]) -> str:
     """Извлекает из информации(homework: dict) статус работы."""
     homework_name: Optional(str) = homework.get('homework_name')
     homework_status: Optional(str) = homework.get('status')
@@ -106,14 +125,14 @@ def check_tokens() -> bool:
     вернуть False, иначе — True.
     """
     variables: Dict[str, Union(str, int)] = {
-        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
+        'PRACTICUM_TOKEN': constants.PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': constants.TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': constants.TELEGRAM_CHAT_ID
     }
-    for value in variables.values():
+    for key, value in variables.items():
         if value is None:
             logger.critical(
-                f'Отсутствует обязательная переменная окружения: {value}')
+                f'Отсутствует обязательная переменная окружения: {key}')
     return all(variables.values())
 
 
@@ -127,7 +146,7 @@ def main() -> None:
 
     logger.info('Программа работает')
 
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    bot = telegram.Bot(token=constants.TELEGRAM_TOKEN)
     current_timestamp: int = int(time.time())
     submitted_error: str = ''
     while True:
@@ -138,6 +157,12 @@ def main() -> None:
 
             if current_homeworks:
                 homework_status: str = parse_status(current_homeworks[0])
+            if current_homeworks:
+                send_message(bot=bot, message=homework_status)
+            else:
+                logger.debug('Статус не обновился')
+            current_timestamp = response['current_date']
+            submitted_error = ''
 
         except Exception as error:
             message: str = f'Сбой в работе программы: {error}'
@@ -145,15 +170,8 @@ def main() -> None:
             if message != submitted_error:
                 send_message(bot=bot, message=message)
                 submitted_error = message
+        finally:
             time.sleep(constants.RETRY_TIME)
-        else:
-            if current_homeworks:
-                send_message(bot=bot, message=homework_status)
-            else:
-                logger.debug('Статус не обновился')
-            current_timestamp = response['current_date']
-            time.sleep(constants.RETRY_TIME)
-            submitted_error = ''
 
 
 if __name__ == '__main__':
