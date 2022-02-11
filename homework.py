@@ -47,7 +47,7 @@ def send_message(bot: telegram.Bot, message: str) -> None:
         logger.error(f'Неудалось отправить сообщение, ошибка: {e}')
 
 
-def get_api_answer(current_timestamp: int) -> Dict[str, Union(list, int)]:
+def get_api_answer(current_timestamp: int) -> Dict[str, Union[list, int]]:
     """Делает запрос к API сервиса Практикум.Домашка."""
     timestamp: int = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
@@ -89,16 +89,16 @@ def get_api_answer(current_timestamp: int) -> Dict[str, Union(list, int)]:
 
 
 def check_response(
-    response: Dict[str, Union(list, int)]
-) -> List[Dict[str, Union(list, int)]]:
+    response: Dict[str, Union[list, int]]
+) -> List[Dict[str, Union[list, int]]]:
     """Проверяет ответ API на корректность."""
-    if not response or isinstance(response, dict):
+    if not response or not isinstance(response, dict):
         raise TypeError('В ответе API ничего нет или это не словарь')
     homeworks: Optional(list) = response.get('homeworks')
     current_date: Optional(int) = response.get('current_date')
     if homeworks is None or current_date is None:
         raise TypeError('В ответе API нет ключей `homeworks` и `current_date`')
-    if isinstance(homeworks, list) or isinstance(current_date, int):
+    if not isinstance(homeworks, list) or not isinstance(current_date, int):
         raise TypeError(
             'В ответе API не ожидаемые типы значений '
             'ключей `homeworks` и `current_date`'
@@ -106,7 +106,7 @@ def check_response(
     return homeworks
 
 
-def parse_status(homework: Dict[str, Union(list, int)]) -> str:
+def parse_status(homework: Dict[str, Union[list, int]]) -> str:
     """Извлекает из информации(homework: dict) статус работы."""
     homework_name: Optional(str) = homework.get('homework_name')
     homework_status: Optional(str) = homework.get('status')
@@ -124,7 +124,7 @@ def check_tokens() -> bool:
     Если отсутствует хотя бы одна переменная окружения — функция должна
     вернуть False, иначе — True.
     """
-    variables: Dict[str, Union(str, int)] = {
+    variables: Dict[str, Union[str, int]] = {
         'PRACTICUM_TOKEN': constants.PRACTICUM_TOKEN,
         'TELEGRAM_TOKEN': constants.TELEGRAM_TOKEN,
         'TELEGRAM_CHAT_ID': constants.TELEGRAM_CHAT_ID
@@ -151,7 +151,7 @@ def main() -> None:
     submitted_error: str = ''
     while True:
         try:
-            type_response = Dict[str, Union(list, int)]
+            type_response = Dict[str, Union[list, int]]
             response: type_response = get_api_answer(current_timestamp)
             current_homeworks: list = check_response(response=response)
 
