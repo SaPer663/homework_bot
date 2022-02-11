@@ -80,7 +80,11 @@ class TestHomework:
         'reviewing': 'Работа взята на проверку ревьюером.',
         'rejected': 'Работа проверена: у ревьюера есть замечания.'
     }
-    ENV_VARS = ['PRACTICUM_TOKEN', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID']
+    ENV_VARS = [
+        'PRACTICUM_TOKEN',
+        'TELEGRAM_TOKEN',
+        'TELEGRAM_CHAT_ID'
+    ]
     for v in ENV_VARS:
         try:
             os.environ.pop(v)
@@ -110,14 +114,15 @@ class TestHomework:
             except KeyError:
                 pass
 
+        import constants
         import homework
 
         for v in self.ENV_VARS:
-            utils.check_default_var_exists(homework, v)
+            utils.check_default_var_exists(constants, v)
 
-        homework.PRACTICUM_TOKEN = None
-        homework.TELEGRAM_TOKEN = None
-        homework.TELEGRAM_CHAT_ID = None
+        constants.PRACTICUM_TOKEN = None
+        constants.TELEGRAM_TOKEN = None
+        constants.TELEGRAM_CHAT_ID = None
 
         func_name = 'check_tokens'
         utils.check_function(homework, func_name, 0)
@@ -134,14 +139,15 @@ class TestHomework:
             except KeyError:
                 pass
 
+        import constants
         import homework
 
         for v in self.ENV_VARS:
-            utils.check_default_var_exists(homework, v)
+            utils.check_default_var_exists(constants, v)
 
-        homework.PRACTICUM_TOKEN = 'sometoken'
-        homework.TELEGRAM_TOKEN = '1234:abcdefg'
-        homework.TELEGRAM_CHAT_ID = 12345
+        constants.PRACTICUM_TOKEN = 'sometoken'
+        constants.TELEGRAM_TOKEN = '1234:abcdefg'
+        constants.TELEGRAM_CHAT_ID = 12345
 
         func_name = 'check_tokens'
         utils.check_function(homework, func_name, 0)
